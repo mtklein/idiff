@@ -89,7 +89,11 @@ func main() {
 		return nil
 	})
 	wg.Wait()
-	fmt.Println(len(diffs)/2, "diffs")
+
+	if len(diffs) == 0 {
+		os.Exit(1)
+	}
+
 	df, err := os.Create(diff)
 	if err != nil {
 		fmt.Println(err)
@@ -105,17 +109,18 @@ func main() {
         }
 	div { position: relative; left: 0; top: 0 }
         table { table-layout:fixed; width:100% }
-        img {max-width:100%; max-height:320; top: 0; left: 0 }`
+        img {max-width:100%; max-height:320; left: 0; top: 0 }`
 
 	fmt.Fprintf(df, "<style>%s</style><table>", style)
 	for i := 0; i < len(diffs)/2; i++ {
 		fmt.Fprintf(df,
-                   `<tr><td><a href=%s><img src=%s></a>
-                        <td><a href=%s><img src=%s></a>
-                        <td><img src=%s style="position: relative">
-			    <img src=%s style="position: absolute; mix-blend-mode: difference">`,
+                   `<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
+			<td><a href=%s><img src=%s></a>
+                        <td><a href=%s><img src=%s></a>`,
+		       diffs[i*2+0], diffs[i*2+1],
 		       diffs[i*2+0], diffs[i*2+0],
-		       diffs[i*2+1], diffs[i*2+1],
-		       diffs[i*2+0], diffs[i*2+1])
+		       diffs[i*2+1], diffs[i*2+1])
 	}
+
+	fmt.Println(len(diffs)/2, "diffs written to", diff)
 }
