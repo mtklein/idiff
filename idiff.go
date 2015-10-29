@@ -114,12 +114,12 @@ func main() {
 	fmt.Fprintf(df, "<style>%s</style><table>", style)
 	for i := 0; i < len(diffs)/2; i++ {
 		fmt.Fprintf(df,
-                   `<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
+			`<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
 			<td><a href=%s><img src=%s></a>
                         <td><a href=%s><img src=%s></a>`,
-		       diffs[i*2+0], diffs[i*2+1],
-		       diffs[i*2+0], diffs[i*2+0],
-		       diffs[i*2+1], diffs[i*2+1])
+			diffs[i*2+0], diffs[i*2+1],
+			diffs[i*2+0], diffs[i*2+0],
+			diffs[i*2+1], diffs[i*2+1])
 	}
 
 	fmt.Println(len(diffs)/2, "diffs written to", diff)
