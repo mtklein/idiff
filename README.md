@@ -5,7 +5,7 @@ Barebones Go image differ.
 
 Installation:
 
-    $ go install github.com/mtklein/idiff
+    $ go get github.com/mtklein/idiff
 
 Usage:
 
