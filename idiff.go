@@ -42,7 +42,7 @@ func IsEasy(i image.Image) *image.NRGBA {
 
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
 	sad := C.sad(unsafe.Pointer(&l.Pix[0]), unsafe.Pointer(&r.Pix[0]), C.int(len(l.Pix)))
-	return float64(sad) / float64(len(l.Pix)*255)
+	return float64(sad) / float64(len(l.Pix))
 }
 
 func DiffImages(l, r image.Image) float64 {
@@ -53,21 +53,8 @@ func DiffImages(l, r image.Image) float64 {
 	if ezL, ezR := IsEasy(l), IsEasy(r); ezL != nil && ezR != nil {
 		return DiffImagesEasy(ezL, ezR)
 	}
-
-	x0 := l.Bounds().Min.X
-	x1 := l.Bounds().Max.X
-	y0 := l.Bounds().Min.Y
-	y1 := l.Bounds().Max.Y
-
-	ndiffs := 0
-	for y := y0; y < y1; y++ {
-		for x := x0; x < x1; x++ {
-			if l.At(x, y) != r.At(x, y) {
-				ndiffs += 1
-			}
-		}
-	}
-	return float64(ndiffs) / float64((y1-y0)*(x1-x0))
+	panic("Non-NRGBA impl of DiffImages is a TODO")
+	return math.Inf(+1)
 }
 
 func main() {
