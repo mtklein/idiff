@@ -6,11 +6,23 @@ import (
 	"image"
 	_ "image/png"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
+
+type Diff struct {
+	l, r string
+	diff float64
+}
+type DiffSlice []Diff
+
+func (ds DiffSlice) Len() int           { return len(ds) }
+func (ds DiffSlice) Less(i, j int) bool { return ds[i].diff > ds[j].diff }
+func (ds DiffSlice) Swap(i, j int)      { ds[i], ds[j] = ds[j], ds[i] }
 
 func main() {
 	if len(os.Args) < 3 {
@@ -26,7 +38,7 @@ func main() {
 	}
 
 	wg := &sync.WaitGroup{}
-	diffs := make([]string, 0)
+	diffs := make(DiffSlice, 0)
 	mutex := &sync.Mutex{}
 	filepath.Walk(left, func(path string, info os.FileInfo, err error) error {
 		path = filepath.Clean(path)
@@ -65,7 +77,7 @@ func main() {
 
 			if !li.Bounds().Eq(ri.Bounds()) {
 				mutex.Lock()
-				diffs = append(diffs, path, rpath)
+				diffs = append(diffs, Diff{path, rpath, math.Inf(+1)})
 				mutex.Unlock()
 				return
 			}
@@ -75,15 +87,19 @@ func main() {
 			y0 := li.Bounds().Min.Y
 			y1 := li.Bounds().Max.Y
 
+			ndiffs := 0
 			for y := y0; y < y1; y++ {
 				for x := x0; x < x1; x++ {
 					if li.At(x, y) != ri.At(x, y) {
-						mutex.Lock()
-						diffs = append(diffs, path, rpath)
-						mutex.Unlock()
-						return
+						ndiffs += 1
 					}
 				}
+			}
+			if ndiffs > 0 {
+				diff := float64(ndiffs) / float64((y1-y0)*(x1-x0))
+				mutex.Lock()
+				diffs = append(diffs, Diff{path, rpath, diff})
+				mutex.Unlock()
 			}
 		}()
 		return nil
@@ -93,6 +109,8 @@ func main() {
 	if len(diffs) == 0 {
 		os.Exit(1)
 	}
+
+	sort.Sort(diffs)
 
 	df, err := os.Create(diff)
 	if err != nil {
@@ -112,15 +130,15 @@ func main() {
         img {max-width:100%; max-height:320; left: 0; top: 0 }`
 
 	fmt.Fprintf(df, "<style>%s</style><table>", style)
-	for i := 0; i < len(diffs)/2; i++ {
+	for i := 0; i < len(diffs); i++ {
 		fmt.Fprintf(df,
 			`<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
 			<td><a href=%s><img src=%s></a>
                         <td><a href=%s><img src=%s></a>`,
-			diffs[i*2+0], diffs[i*2+1],
-			diffs[i*2+0], diffs[i*2+0],
-			diffs[i*2+1], diffs[i*2+1])
+			diffs[i].l, diffs[i].r,
+			diffs[i].l, diffs[i].l,
+			diffs[i].r, diffs[i].r)
 	}
 
-	fmt.Println(len(diffs)/2, "diffs written to", diff)
+	fmt.Println(len(diffs), "diffs written to", diff)
 }
