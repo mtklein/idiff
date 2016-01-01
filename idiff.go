@@ -24,6 +24,60 @@ func (ds DiffSlice) Len() int           { return len(ds) }
 func (ds DiffSlice) Less(i, j int) bool { return ds[i].diff > ds[j].diff }
 func (ds DiffSlice) Swap(i, j int)      { ds[i], ds[j] = ds[j], ds[i] }
 
+func IsEasy(i image.Image) *image.NRGBA {
+	switch v := i.(type) {
+	case *image.NRGBA:
+		if v.Stride == 4*(v.Rect.Max.X-v.Rect.Min.X) {
+			return v
+		}
+		return nil
+	default:
+		return nil
+	}
+}
+
+func Pack(b, g, r, a uint8) uint32 {
+	return uint32(a)<<24 | uint32(r)<<16 | uint32(g)<<8 | uint32(b)<<0
+}
+
+func DiffImagesEasy(l, r *image.NRGBA) float64 {
+	n := (l.Rect.Max.X - l.Rect.Min.X) * (l.Rect.Max.Y - l.Rect.Min.Y)
+	ndiffs := 0
+	for i := 0; i < 4*n; i += 4 {
+		lp := Pack(l.Pix[i+0], l.Pix[i+1], l.Pix[i+2], l.Pix[i+3])
+		rp := Pack(r.Pix[i+0], r.Pix[i+1], r.Pix[i+2], r.Pix[i+3])
+		if lp != rp {
+			ndiffs += 1
+		}
+	}
+	return float64(ndiffs) / float64(n)
+}
+
+func DiffImages(l, r image.Image) float64 {
+	if !l.Bounds().Eq(r.Bounds()) {
+		return math.Inf(+1)
+	}
+
+	if ezL, ezR := IsEasy(l), IsEasy(r); ezL != nil && ezR != nil {
+		return DiffImagesEasy(ezL, ezR)
+	}
+
+	x0 := l.Bounds().Min.X
+	x1 := l.Bounds().Max.X
+	y0 := l.Bounds().Min.Y
+	y1 := l.Bounds().Max.Y
+
+	ndiffs := 0
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			if l.At(x, y) != r.At(x, y) {
+				ndiffs += 1
+			}
+		}
+	}
+	return float64(ndiffs) / float64((y1-y0)*(x1-x0))
+}
+
 func main() {
 	if len(os.Args) < 3 {
 		fmt.Printf("Usage: %s <left> <right> [diff.html]\n", os.Args[0])
@@ -75,28 +129,7 @@ func main() {
 				return
 			}
 
-			if !li.Bounds().Eq(ri.Bounds()) {
-				mutex.Lock()
-				diffs = append(diffs, Diff{path, rpath, math.Inf(+1)})
-				mutex.Unlock()
-				return
-			}
-
-			x0 := li.Bounds().Min.X
-			x1 := li.Bounds().Max.X
-			y0 := li.Bounds().Min.Y
-			y1 := li.Bounds().Max.Y
-
-			ndiffs := 0
-			for y := y0; y < y1; y++ {
-				for x := x0; x < x1; x++ {
-					if li.At(x, y) != ri.At(x, y) {
-						ndiffs += 1
-					}
-				}
-			}
-			if ndiffs > 0 {
-				diff := float64(ndiffs) / float64((y1-y0)*(x1-x0))
+			if diff := DiffImages(li, ri); diff > 0 {
 				mutex.Lock()
 				diffs = append(diffs, Diff{path, rpath, diff})
 				mutex.Unlock()
