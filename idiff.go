@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"image"
 	_ "image/png"
@@ -13,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 type Diff struct {
@@ -37,14 +37,16 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
+func ReadPx(bytes []uint8, i int) uint32 {
+	return *(*uint32)(unsafe.Pointer(&bytes[i]))
+}
+
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
 	n := (l.Rect.Max.X - l.Rect.Min.X) * (l.Rect.Max.Y - l.Rect.Min.Y)
 	ndiffs := 0
 
 	for i := 0; i < 4*n; i += 4 {
-		lp := binary.LittleEndian.Uint32(l.Pix[i:i+4])
-		rp := binary.LittleEndian.Uint32(r.Pix[i:i+4])
-		if lp != rp {
+		if ReadPx(l.Pix, i) != ReadPx(r.Pix, i) {
 			ndiffs += 1
 		}
 	}
