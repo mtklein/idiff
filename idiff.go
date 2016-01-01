@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unsafe"
 )
 
 type Diff struct {
@@ -37,20 +36,20 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
-func ReadPx(bytes []uint8, i int) uint32 {
-	return *(*uint32)(unsafe.Pointer(&bytes[i]))
+func AbsDiff(x, y uint8) int {
+	if x > y {
+		return int(x-y)
+	} else {
+		return int(y-x)
+	}
 }
 
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
-	n := (l.Rect.Max.X - l.Rect.Min.X) * (l.Rect.Max.Y - l.Rect.Min.Y)
-	ndiffs := 0
-
-	for i := 0; i < 4*n; i += 4 {
-		if ReadPx(l.Pix, i) != ReadPx(r.Pix, i) {
-			ndiffs += 1
-		}
+	sad := 0
+	for i := range l.Pix {
+		sad += AbsDiff(l.Pix[i], r.Pix[i])
 	}
-	return float64(ndiffs) / float64(n)
+	return float64(sad) / float64(len(l.Pix)*255)
 }
 
 func DiffImages(l, r image.Image) float64 {
