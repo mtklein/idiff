@@ -12,7 +12,11 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unsafe"
 )
+
+// #include "sad.h"
+import "C"
 
 type Diff struct {
 	l, r string
@@ -36,20 +40,8 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
-func Abs(x int) int {
-	mask := x >> 31
-	return (x ^ mask) - mask
-}
-
-func AbsDiff(x, y uint8) int {
-	return Abs(int(x) - int(y))
-}
-
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
-	sad := 0
-	for i, lp := range l.Pix {
-		sad += AbsDiff(lp, r.Pix[i])
-	}
+	sad := C.sad(unsafe.Pointer(&l.Pix[0]), unsafe.Pointer(&r.Pix[0]), C.int(len(l.Pix)))
 	return float64(sad) / float64(len(l.Pix)*255)
 }
 
