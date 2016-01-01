@@ -36,18 +36,19 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
+func Abs(x int) int {
+	mask := x >> 31
+	return (x ^ mask) - mask
+}
+
 func AbsDiff(x, y uint8) int {
-	if x > y {
-		return int(x-y)
-	} else {
-		return int(y-x)
-	}
+	return Abs(int(x) - int(y))
 }
 
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
 	sad := 0
-	for i := range l.Pix {
-		sad += AbsDiff(l.Pix[i], r.Pix[i])
+	for i, lp := range l.Pix {
+		sad += AbsDiff(lp, r.Pix[i])
 	}
 	return float64(sad) / float64(len(l.Pix)*255)
 }
