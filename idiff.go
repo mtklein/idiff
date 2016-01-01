@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"image"
 	_ "image/png"
@@ -36,16 +37,13 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
-func Pack(b, g, r, a uint8) uint32 {
-	return uint32(a)<<24 | uint32(r)<<16 | uint32(g)<<8 | uint32(b)<<0
-}
-
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
 	n := (l.Rect.Max.X - l.Rect.Min.X) * (l.Rect.Max.Y - l.Rect.Min.Y)
 	ndiffs := 0
+
 	for i := 0; i < 4*n; i += 4 {
-		lp := Pack(l.Pix[i+0], l.Pix[i+1], l.Pix[i+2], l.Pix[i+3])
-		rp := Pack(r.Pix[i+0], r.Pix[i+1], r.Pix[i+2], r.Pix[i+3])
+		lp := binary.LittleEndian.Uint32(l.Pix[i:i+4])
+		rp := binary.LittleEndian.Uint32(r.Pix[i:i+4])
 		if lp != rp {
 			ndiffs += 1
 		}
