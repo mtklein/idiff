@@ -168,7 +168,7 @@ func main() {
 		fmt.Fprintf(df,
 			`<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
 			     <td><a href=%s><img src=%s></a>
-				 <td><a href=%s><img src=%s></a>`,
+			     <td><a href=%s><img src=%s></a>`,
 			diffs[i].l, diffs[i].r,
 			diffs[i].l, diffs[i].l,
 			diffs[i].r, diffs[i].r)
