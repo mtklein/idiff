@@ -12,11 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unsafe"
 )
-
-// #include "sad.h"
-import "C"
 
 type Diff struct {
 	l, r string
@@ -40,9 +36,21 @@ func IsEasy(i image.Image) *image.NRGBA {
 	}
 }
 
+func Abs(x int64) int64 {
+	mask := x >> 63
+	return (x ^ mask) - mask
+}
+
+func AbsDiff(x, y int64) int64 {
+	return Abs(x - y)
+}
+
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
-	sad := C.sad(unsafe.Pointer(&l.Pix[0]), unsafe.Pointer(&r.Pix[0]), C.int(len(l.Pix)))
-	return float64(sad) / float64(len(l.Pix))
+	sad := int64(0)
+	for i := range l.Pix {
+		sad += AbsDiff(int64(l.Pix[i]), int64(r.Pix[i]))
+	}
+	return float64(sad) / float64(len(l.Pix)*0xff)
 }
 
 func DiffImages(l, r image.Image) float64 {
@@ -53,8 +61,22 @@ func DiffImages(l, r image.Image) float64 {
 	if ezL, ezR := IsEasy(l), IsEasy(r); ezL != nil && ezR != nil {
 		return DiffImagesEasy(ezL, ezR)
 	}
-	panic("Non-NRGBA impl of DiffImages is a TODO")
-	return math.Inf(+1)
+
+	x0, x1 := l.Bounds().Min.X, l.Bounds().Max.X
+	y0, y1 := l.Bounds().Min.Y, l.Bounds().Max.Y
+
+	sad := int64(0)
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			lr, lg, lb, la := l.At(x, y).RGBA()
+			rr, rg, rb, ra := r.At(x, y).RGBA()
+			sad += AbsDiff(int64(lr), int64(rr))
+			sad += AbsDiff(int64(lg), int64(rg))
+			sad += AbsDiff(int64(lb), int64(rb))
+			sad += AbsDiff(int64(la), int64(ra))
+		}
+	}
+	return float64(sad) / float64(4*(x1-x0)*(y1-y0)*0xffff)
 }
 
 func main() {
