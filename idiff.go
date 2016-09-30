@@ -91,6 +91,7 @@ func main() {
 	if len(os.Args) > 3 {
 		diff = os.Args[3]
 	}
+	fmt.Println("diffbase: ", diff)
 
 	wg := &sync.WaitGroup{}
 	diffs := make(DiffSlice, 0)
@@ -131,8 +132,10 @@ func main() {
 			}
 
 			if diff := DiffImages(li, ri); diff > 0 {
+				left, _ := filepath.Rel(diffbase, path)
+				right, _ := filepath.Rel(diffbase, rpath)
 				mutex.Lock()
-				diffs = append(diffs, Diff{path, rpath, diff})
+				diffs = append(diffs, Diff{left, right, diff})
 				mutex.Unlock()
 			}
 		}()
