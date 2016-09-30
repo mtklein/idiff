@@ -88,6 +88,7 @@ func main() {
 	left := filepath.Clean(os.Args[1])
 	right := filepath.Clean(os.Args[2])
 	diff := "diff.html"
+        diffbase := filepath.Base(diff)
 	if len(os.Args) > 3 {
 		diff = os.Args[3]
 	}
