@@ -88,6 +88,7 @@ func main() {
 	left := filepath.Clean(os.Args[1])
 	right := filepath.Clean(os.Args[2])
 	diff := "diff.html"
+	diffbase := filepath.Base(diff)
 	if len(os.Args) > 3 {
 		diff = os.Args[3]
 	}
@@ -131,8 +132,10 @@ func main() {
 			}
 
 			if diff := DiffImages(li, ri); diff > 0 {
+				left, _ := filepath.Rel(diffbase, path)
+				right, _ := filepath.Rel(diffbase, rpath)
 				mutex.Lock()
-				diffs = append(diffs, Diff{path, rpath, diff})
+				diffs = append(diffs, Diff{left, right, diff})
 				mutex.Unlock()
 			}
 		}()
