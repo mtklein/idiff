@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type Diff struct {
@@ -96,6 +97,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 	diffs := make(DiffSlice, 0)
 	mutex := &sync.Mutex{}
+	compareCnt := int32(0)
 	filepath.Walk(left, func(path string, info os.FileInfo, err error) error {
 		path = filepath.Clean(path)
 		if err != nil {
@@ -116,6 +118,8 @@ func main() {
 				fmt.Println("No corresponding file found for", path)
 				return
 			}
+
+			atomic.AddInt32(&compareCnt, 1)
 
 			if bytes.Equal(lb, rb) {
 				return
@@ -143,6 +147,7 @@ func main() {
 	})
 	wg.Wait()
 
+	fmt.Println(compareCnt - int32(len(diffs)), "files are identical.")
 	if len(diffs) == 0 {
 		os.Exit(1)
 	}
