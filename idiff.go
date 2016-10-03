@@ -147,7 +147,7 @@ func main() {
 	})
 	wg.Wait()
 
-	fmt.Println(compareCnt - int32(len(diffs)), "files are identical.", )
+	fmt.Println(compareCnt - int32(len(diffs)), "files are identical.")
 	if len(diffs) == 0 {
 		os.Exit(1)
 	}
