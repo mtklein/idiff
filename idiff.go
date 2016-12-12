@@ -174,9 +174,17 @@ func main() {
 	fmt.Fprintf(df, "<style>%s</style><table>", style)
 	for i := 0; i < len(diffs); i++ {
 		fmt.Fprintf(df,
-			`<tr><td><div><img src=%s><img src=%s style="position:absolute; mix-blend-mode:difference"></div>
+			`<tr><td><div style="filter: grayscale(1) brightness(256)">
+			             <img src=%s>
+			             <img src=%s style="position:absolute; mix-blend-mode:difference">
+			         </div>
+			     <td><div>
+			             <img src=%s>
+			             <img src=%s style="position:absolute; mix-blend-mode:difference">
+			         </div>
 			     <td><a href=%s><img src=%s></a>
 			     <td><a href=%s><img src=%s></a>`,
+			diffs[i].l, diffs[i].r,
 			diffs[i].l, diffs[i].r,
 			diffs[i].l, diffs[i].l,
 			diffs[i].r, diffs[i].r)
