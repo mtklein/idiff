@@ -13,7 +13,21 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 )
+
+/*
+#include <emmintrin.h>
+int64_t sad_8888_sse2(const uint32_t* l, const uint32_t* r, int len) {
+	int64_t sad = 0;
+	for (int i = 0; i < len; i++) {
+		sad += _mm_cvtsi128_si64(_mm_sad_epu8(_mm_cvtsi32_si128(l[i]),
+		                                      _mm_cvtsi32_si128(r[i])));
+	}
+	return sad;
+}
+*/
+import "C"
 
 type Diff struct {
 	l, r string
@@ -47,10 +61,8 @@ func AbsDiff(x, y int64) int64 {
 }
 
 func DiffImagesEasy(l, r *image.NRGBA) float64 {
-	sad := int64(0)
-	for i := range l.Pix {
-		sad += AbsDiff(int64(l.Pix[i]), int64(r.Pix[i]))
-	}
+	sad := C.sad_8888_sse2((*C.uint32_t)(unsafe.Pointer(&l.Pix[0])),
+	                       (*C.uint32_t)(unsafe.Pointer(&r.Pix[0])), C.int(len(l.Pix)/4))
 	return float64(sad) / float64(len(l.Pix)*0xff)
 }
 
