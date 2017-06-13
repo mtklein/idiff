@@ -19,12 +19,19 @@ import (
 /*
 #include <emmintrin.h>
 int64_t sad_8888_sse2(const uint32_t* l, const uint32_t* r, int len) {
-	__v2di sad = {0,0};
-	while (len --> 0) {
+	__v2di sad = {0,0};  // Accumulate 2 parallel sums of absolute difference.
+	while (len >= 4) {
+		sad += _mm_sad_epu8(_mm_loadu_si128((const __m128i*)l),
+		                    _mm_loadu_si128((const __m128i*)r));
+		len -= 4;
+		l   += 4;
+		r   += 4;
+	}
+	while (len --> 0) {  // This loop will actually only update sad[0].
 		sad += _mm_sad_epu8(_mm_cvtsi32_si128(*l++),
 		                    _mm_cvtsi32_si128(*r++));
 	}
-	return sad[0];
+	return sad[0] + sad[1];
 }
 */
 import "C"
