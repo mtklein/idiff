@@ -19,12 +19,12 @@ import (
 /*
 #include <emmintrin.h>
 int64_t sad_8888_sse2(const uint32_t* l, const uint32_t* r, int len) {
-	int64_t sad = 0;
-	for (int i = 0; i < len; i++) {
-		sad += _mm_cvtsi128_si64(_mm_sad_epu8(_mm_cvtsi32_si128(l[i]),
-		                                      _mm_cvtsi32_si128(r[i])));
+	__v2di sad = {0,0};
+	while (len --> 0) {
+		sad += _mm_sad_epu8(_mm_cvtsi32_si128(*l++),
+		                    _mm_cvtsi32_si128(*r++));
 	}
-	return sad;
+	return sad[0];
 }
 */
 import "C"
