@@ -46,9 +46,20 @@ func (ds DiffSlice) Len() int           { return len(ds) }
 func (ds DiffSlice) Less(i, j int) bool { return ds[i].diff > ds[j].diff }
 func (ds DiffSlice) Swap(i, j int)      { ds[i], ds[j] = ds[j], ds[i] }
 
-func IsEasy(i image.Image) *image.NRGBA {
+func AsPackedNRGBA(i image.Image) *image.NRGBA {
 	switch v := i.(type) {
 	case *image.NRGBA:
+		if v.Stride == 4*(v.Rect.Max.X-v.Rect.Min.X) {
+			return v
+		}
+		return nil
+	default:
+		return nil
+	}
+}
+func AsPackedRGBA(i image.Image) *image.RGBA {
+	switch v := i.(type) {
+	case *image.RGBA:
 		if v.Stride == 4*(v.Rect.Max.X-v.Rect.Min.X) {
 			return v
 		}
@@ -67,7 +78,12 @@ func AbsDiff(x, y int64) int64 {
 	return Abs(x - y)
 }
 
-func DiffImagesEasy(l, r *image.NRGBA) float64 {
+func DiffPackedNRGBA(l, r *image.NRGBA) float64 {
+	sad := C.sad_8888_sse2((*C.uint32_t)(unsafe.Pointer(&l.Pix[0])),
+	                       (*C.uint32_t)(unsafe.Pointer(&r.Pix[0])), C.int(len(l.Pix)/4))
+	return float64(sad) / float64(len(l.Pix)*0xff)
+}
+func DiffPackedRGBA(l, r *image.RGBA) float64 {
 	sad := C.sad_8888_sse2((*C.uint32_t)(unsafe.Pointer(&l.Pix[0])),
 	                       (*C.uint32_t)(unsafe.Pointer(&r.Pix[0])), C.int(len(l.Pix)/4))
 	return float64(sad) / float64(len(l.Pix)*0xff)
@@ -78,8 +94,11 @@ func DiffImages(l, r image.Image) float64 {
 		return math.Inf(+1)
 	}
 
-	if ezL, ezR := IsEasy(l), IsEasy(r); ezL != nil && ezR != nil {
-		return DiffImagesEasy(ezL, ezR)
+	if L, R := AsPackedNRGBA(l), AsPackedNRGBA(r); L != nil && R != nil {
+		return DiffPackedNRGBA(L, R)
+	}
+	if L, R := AsPackedRGBA(l), AsPackedRGBA(r); L != nil && R != nil {
+		return DiffPackedRGBA(L, R)
 	}
 
 	x0, x1 := l.Bounds().Min.X, l.Bounds().Max.X
