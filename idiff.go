@@ -18,6 +18,7 @@ import (
 
 /*
 #include <emmintrin.h>
+#include <stdint.h>
 int64_t sad_8888_sse2(const uint32_t* l, const uint32_t* r, int len) {
 	__v2di sad = {0,0};  // Accumulate 2 parallel sums of absolute difference.
 	while (len >= 4) {
