@@ -69,6 +69,17 @@ func AsPackedRGBA(i image.Image) *image.RGBA {
 		return nil
 	}
 }
+func AsPackedNRGBA64(i image.Image) *image.NRGBA64 {
+	switch v := i.(type) {
+	case *image.NRGBA64:
+		if v.Stride == 8*(v.Rect.Max.X-v.Rect.Min.X) {
+			return v
+		}
+		return nil
+	default:
+		return nil
+	}
+}
 
 func Abs(x int64) int64 {
 	mask := x >> 63
@@ -89,6 +100,13 @@ func DiffPackedRGBA(l, r *image.RGBA) float64 {
 	                       (*C.uint32_t)(unsafe.Pointer(&r.Pix[0])), C.int(len(l.Pix)/4))
 	return float64(sad) / float64(len(l.Pix)*0xff)
 }
+func DiffPackedNRGBA64(l, r *image.NRGBA64) float64 {
+	sad := int64(0)
+	for i := range l.Pix {
+		sad += AbsDiff(int64(l.Pix[i]), int64(r.Pix[i]))
+	}
+	return float64(sad) / float64(len(l.Pix) * 0xffff)
+}
 
 func DiffImages(l, r image.Image) float64 {
 	if !l.Bounds().Eq(r.Bounds()) {
@@ -100,6 +118,9 @@ func DiffImages(l, r image.Image) float64 {
 	}
 	if L, R := AsPackedRGBA(l), AsPackedRGBA(r); L != nil && R != nil {
 		return DiffPackedRGBA(L, R)
+	}
+	if L, R := AsPackedNRGBA64(l), AsPackedNRGBA64(r); L != nil && R != nil {
+		return DiffPackedNRGBA64(L, R)
 	}
 
 	x0, x1 := l.Bounds().Min.X, l.Bounds().Max.X
