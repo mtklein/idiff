@@ -1,0 +1,8 @@
+cc   = clang
+warn = -Werror -Weverything -Wno-padded
+
+rule compile_and_link
+    command = $cc -g1 -O1 $warn `pkg-config --cflags --libs libpng` $in -o $out
+
+build idiff: compile_and_link idiff.c
+
