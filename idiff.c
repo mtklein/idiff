@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ftw.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -126,8 +127,8 @@ static int walk(const char* path, const struct stat* st, int flag) {
                 break;
             }
 
-            // Responsibility for cleanup(&a) and cleanup(&b) passes to
-            // start_diff(), then to diff() which calls cleanup_except_path(),
+            // Responsibility for cleanup(&a) and cleanup(&b) passes to start_diff(),
+            // then to diff() which calls cleanup_except_path(),
             // and ultimately back to main() where we finally cleanup() the paths.
             start_diff(a,b);
             return 0;
