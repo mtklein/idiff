@@ -1,11 +1,16 @@
 idiff
 =====
 
-Barebones Go image differ.
+Barebones image differs.
 
-Installation:
+Build steps, C version:
 
-    $ go get github.com/mtklein/idiff
+    $ ninja
+
+Build steps, Go version:
+
+    $ rm idiff.c
+    $ go build
 
 Usage:
 
