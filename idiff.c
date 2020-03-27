@@ -101,13 +101,14 @@ static int walk(const char* path, const struct stat* st, int flag) {
         do {
             ++total;
 
-            asprintf(&a.path, "%s/%s", a.root, path + strlen(b.root));
-            assert(a.path);
+            size_t len = strlen(path) - strlen(b.root) + strlen(a.root) + 2/*path divider and NUL*/;
+            a.path = malloc(len);
+            snprintf(a.path,len, "%s/%s", a.root, path + strlen(b.root));
             b.path = strdup(path);
 
             struct stat ast;
             if (0 != stat(a.path, &ast)) {
-                fprintf(stderr, "No pair for %s.\n", path);
+                fprintf(stderr, "No pair for %s at %s.\n", b.path, a.path);
                 break;
             }
             a.enc_size = (size_t)ast.st_size;
