@@ -1,7 +1,7 @@
 #warn = -Werror -Weverything -Wno-padded
 
 rule compile_and_link
-    command = cc -g1 -O1 $warn `pkg-config --cflags --libs libpng` -pthread $in -o $out
+    command = cc -g1 -O1 $warn $in `pkg-config --cflags --libs libpng` -pthread -o $out
 
 build idiff: compile_and_link idiff.c
 
