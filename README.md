@@ -5,7 +5,8 @@ Barebones image differs.
 
 Build steps, C version:
 
-    $ ninja
+    $ meson out
+    $ ninja -C out
 
 Build steps, Go version:
 
