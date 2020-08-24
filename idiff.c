@@ -10,8 +10,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <png.h>
-
 static struct Side {
     const char* root;
     char*       path;
@@ -34,20 +32,37 @@ static void cleanup(struct Side* s) {
     if (s->path) { free(s->path); s->path = NULL; }
 }
 
-static void decode(struct Side* s) {
-    png_image img = {
-        .version = PNG_IMAGE_VERSION,
-        .format  = PNG_FORMAT_LINEAR_RGB_ALPHA,
-    };
-    png_image_begin_read_from_memory(&img, s->enc, s->enc_size);
+#if !defined(__has_include)
+    #define  __has_include(x) 0
+#endif
 
-    s->dec_size = PNG_IMAGE_SIZE(img);
-    s->dec      = malloc(s->dec_size);
+#if __has_include(<png.h>)
+    #include <png.h>
 
-    png_image_finish_read(&img, /*background=*/NULL,
-                          s->dec, (int)PNG_IMAGE_ROW_STRIDE(img), /*colormap=*/NULL);
-    png_image_free(&img);
-}
+    static void decode(struct Side* s) {
+        png_image img = {
+            .version = PNG_IMAGE_VERSION,
+            .format  = PNG_FORMAT_LINEAR_RGB_ALPHA,
+        };
+        png_image_begin_read_from_memory(&img, s->enc, s->enc_size);
+
+        s->dec_size = PNG_IMAGE_SIZE(img);
+        s->dec      = malloc(s->dec_size);
+
+        png_image_finish_read(&img, /*background=*/NULL,
+                              s->dec, (int)PNG_IMAGE_ROW_STRIDE(img), /*colormap=*/NULL);
+        png_image_free(&img);
+    }
+#else
+    #define STB_IMAGE_IMPLEMENTATION
+    #define STBI_ONLY_PNG
+    #include "ext/stb/stb_image.h"
+    static void decode(struct Side* s) {
+        int w,h,ch;
+        s->dec = stbi_load_16_from_memory(s->enc,s->enc_size, &w,&h, &ch,4);
+        s->dec_size = sizeof(uint16_t)*w*h;
+    }
+#endif
 
 struct Diff {
     struct Side a,b;
@@ -124,7 +139,7 @@ static int walk(const char* path, const struct stat* st, int flag) {
             b.enc = mmap(NULL,b.enc_size, PROT_READ,MAP_PRIVATE, b.fd,0);
             assert(a.enc != MAP_FAILED && b.enc != MAP_FAILED);
 
-            if (a.enc_size == b.enc_size && 0 == memcmp(a.enc, b.enc, a.enc_size)) {
+            if (1 && a.enc_size == b.enc_size && 0 == memcmp(a.enc, b.enc, a.enc_size)) {
                 break;
             }
 

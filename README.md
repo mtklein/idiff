@@ -5,8 +5,10 @@ Barebones image differs.
 
 Build steps, C version:
 
-    $ meson out
-    $ ninja -C out
+    $ cc -g -O2 -pthread idiff.c -o idiff
+
+idiff will use `libpng` if available (link `-lpng`)
+or `stb_image` from the `ext/stb` submodule if not.
 
 Build steps, Go version:
 
