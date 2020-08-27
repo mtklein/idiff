@@ -7,8 +7,9 @@ Build steps, C version:
 
     $ cc -g -O2 -march=native -pthread idiff.c -o idiff
 
-idiff will use `libpng` if available (link `-lpng`)
-or `stb_image` from the `ext/stb` submodule if not.
+idiff will use `libspng` if available (link `-lspng`),
+falling back to `libpng` if available (link `-lpng`),
+or `stb_image` from the `ext/stb` submodule as last resort.
 
 Build steps, Go version:
 

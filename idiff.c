@@ -37,7 +37,17 @@ static void cleanup(struct Side* s) {
     #define  __has_include(x) 0
 #endif
 
-#if __has_include(<png.h>)
+#if 1 && __has_include(<spng.h>)
+    #include <spng.h>
+    static void decode(struct Side* s) {
+        spng_ctx* ctx = spng_ctx_new(0);
+        spng_set_png_buffer(ctx, s->enc, s->enc_size);
+        spng_decoded_image_size(ctx, SPNG_FMT_RGBA16, &s->dec_size);
+        s->dec = malloc(s->dec_size);
+        spng_decode_image(ctx, s->dec, s->dec_size, SPNG_FMT_RGBA16, 0);
+        spng_ctx_free(ctx);
+    }
+#elif 1 && __has_include(<png.h>)
     #include <png.h>
     static void decode(struct Side* s) {
         png_image img = {
@@ -129,7 +139,7 @@ static int walk(const char* path, const struct stat* st, int flag) {
             b.enc = mmap(NULL,b.enc_size, PROT_READ,MAP_PRIVATE, b.fd,0);
             assert(a.enc != MAP_FAILED && b.enc != MAP_FAILED);
 
-            if (1 && a.enc_size == b.enc_size && 0 == memcmp(a.enc, b.enc, a.enc_size)) {
+            if ((1) && a.enc_size == b.enc_size && 0 == memcmp(a.enc, b.enc, a.enc_size)) {
                 break;
             }
 
