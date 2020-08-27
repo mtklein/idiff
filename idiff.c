@@ -15,6 +15,7 @@ static struct Side {
     char*       path;
     size_t  enc_size;
     int           fd;
+    int       UNUSED;
     void*        enc;
     size_t  dec_size;
     uint16_t*    dec;
@@ -38,7 +39,6 @@ static void cleanup(struct Side* s) {
 
 #if __has_include(<png.h>)
     #include <png.h>
-
     static void decode(struct Side* s) {
         png_image img = {
             .version = PNG_IMAGE_VERSION,
@@ -69,7 +69,7 @@ struct Diff {
     double diff;
 };
 
-static void* diff(void* arg) {
+static void* decode_and_diff(void* arg) {
     struct Diff* d = arg;
     struct Side *a = &d->a,
                 *b = &d->b;
@@ -93,18 +93,8 @@ static void* diff(void* arg) {
     return NULL;
 }
 
-static pthread_t threads[1<<20], *next_thread = threads;
-static struct Diff diffs[1<<20], *next_diff   = diffs;
-
-static void start_diff(struct Side a, struct Side b) {
-    *next_diff = (struct Diff){a,b, 0.0};
-    if (0 == pthread_create(next_thread, NULL, diff, next_diff)) {
-        next_thread++;
-    } else {
-        diff(next_diff);
-    }
-    next_diff++;
-}
+static pthread_t thread[1<<20], *next_thread = thread;
+static struct Diff diff[1<<20], *next_diff   = diff;
 
 static int total = 0,
            pairs = 0;
@@ -143,10 +133,16 @@ static int walk(const char* path, const struct stat* st, int flag) {
                 break;
             }
 
-            // Responsibility for cleanup(&a) and cleanup(&b) passes to start_diff(),
-            // then to diff() which calls cleanup_except_path(),
-            // and ultimately back to main() where we finally cleanup() the paths.
-            start_diff(a,b);
+            // Responsibility for cleanup(&a) and cleanup(&b) passes to decode_and_diff()
+            // which calls cleanup_except_path(), and ultimately back to main()
+            // where we finally cleanup() the paths.
+            *next_diff = (struct Diff){a,b, 0.0};
+            if (0 == pthread_create(next_thread, NULL, decode_and_diff, next_diff)) {
+                next_thread++;
+            } else {
+                decode_and_diff(next_diff);
+            }
+            next_diff++;
             return 0;
 
         } while(0);
@@ -171,15 +167,15 @@ int main(int argc, char** argv) {
     A.root    =       argc > 2 ? argv[2] :  "after";
     FILE* out = fopen(argc > 3 ? argv[3] : "diff.html", "w");
 
-    const int nopenfd = 1024;
-    ftw(B.root, walk, nopenfd);
+    const int max_open_fds = 1024;
+    ftw(B.root, walk, max_open_fds);
 
-    for (pthread_t* th = threads; th != next_thread; th++) {
+    for (pthread_t* th = thread; th != next_thread; th++) {
         pthread_join(*th, NULL);
     }
 
-    const size_t ndiffs = (size_t)(next_diff - diffs);
-    qsort(diffs, ndiffs, sizeof(struct Diff), sort_by_descending_diff);
+    const size_t diffs = (size_t)(next_diff - diff);
+    qsort(diff, diffs, sizeof(struct Diff), sort_by_descending_diff);
 
     const char* style =
         "body { background-size: 16px 16px;                                                   "
@@ -193,7 +189,7 @@ int main(int argc, char** argv) {
         "img {max-width:100%; max-height:320; left: 0; top: 0 }                               ";
     fprintf(out, "<style>%s</style><table>\n", style);
 
-    for (size_t i = 0; i < ndiffs; i++) {
+    for (size_t i = 0; i < diffs; i++) {
         fprintf(out,
             "<tr><td><div style=\"filter: grayscale(1) brightness(256)\">                    "
             "            <img src=%s>                                                        "
@@ -205,15 +201,15 @@ int main(int argc, char** argv) {
             "        </div>                                                                  "
             "    <td><a href=%s><img src=%s></a>                                             "
             "    <td><a href=%s><img src=%s></a>\n                                           ",
-            diffs[i].b.path, diffs[i].a.path,
-            diffs[i].b.path, diffs[i].a.path,
-            diffs[i].b.path, diffs[i].b.path,
-            diffs[i].a.path, diffs[i].a.path);
+            diff[i].b.path, diff[i].a.path,
+            diff[i].b.path, diff[i].a.path,
+            diff[i].b.path, diff[i].b.path,
+            diff[i].a.path, diff[i].a.path);
 
-        cleanup(&diffs[i].a);
-        cleanup(&diffs[i].b);
+        cleanup(&diff[i].a);
+        cleanup(&diff[i].b);
     }
 
-    printf("%d .pngs in %s\n%d pairs in %s\n%zu diffs\n", total,B.root, pairs,A.root, ndiffs);
-    return ndiffs ? 0 : 1;
+    printf("%d .pngs in %s\n%d pairs in %s\n%zu diffs\n", total,B.root, pairs,A.root, diffs);
+    return diffs ? 0 : 1;
 }
